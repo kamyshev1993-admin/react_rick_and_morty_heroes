@@ -1,7 +1,7 @@
 import {type ChangeEvent, useEffect, useState} from "react";
 import * as React from "react";
 import {type Hero, type HeroesResponse, HeroState} from "./types.ts";
-import {GetHeroes} from "./api/Heroes";
+import {getHeroes} from "./api/Heroes";
 import './App.css';
 
 type SelectOnChangeParams = {
@@ -44,6 +44,8 @@ export default function HeroApp() {
     const [heroes, setHeroes] = useState<Hero[]>([])
     const [page, setPage] = useState(1)
     const [pages, setPages] = useState(1)
+    const [error, setError] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(false)
 
 
     function handleHeroSelectChange(elem: React.ChangeEvent<HTMLSelectElement>) {
@@ -57,13 +59,22 @@ export default function HeroApp() {
 
     useEffect((): void => {
         async function loadHeroes() {
+            setIsLoading(true)
+            setError(null)
             try {
-                const response: HeroesResponse = await GetHeroes(heroName, heroState, page)
+                const response: HeroesResponse = await getHeroes(heroName, heroState, page)
                 setHeroes(response.results)
                 setPages(response.info.pages)
             } catch (error) {
                 setHeroes([])
                 setPages(1)
+                if (error instanceof Error) {
+                    setError(error.message)
+                } else {
+                    setError("Unknown error")
+                }
+            } finally {
+                setIsLoading(false)
             }
         }
 
@@ -72,45 +83,53 @@ export default function HeroApp() {
 
     return (
         <div className="hero-app">
-            <HeroStateSelect onChange={(elem: React.ChangeEvent<HTMLSelectElement>) => handleHeroSelectChange(elem)}/>
-            <HeroNameInput onChange={(elem: React.ChangeEvent<HTMLInputElement>) => setHeroName(elem.target.value)}/>
-            <div className="heroes-list">
-                {heroes.length > 0 ? (
-                    heroes.map(hero => (
-                        <div key={hero.id} className="heroes">
-                            <h2>
-                                {hero.name}
-                                <span className="hero-status">
-                        {hero.status}
+            <HeroStateSelect
+                onChange={(elem: React.ChangeEvent<HTMLSelectElement>) =>
+                    handleHeroSelectChange(elem)
+                }
+            />
+            <HeroNameInput
+                onChange={(elem: React.ChangeEvent<HTMLInputElement>) =>
+                    setHeroName(elem.target.value)
+                }
+            />
+            {isLoading ? (
+                <div className="loader">Loading...</div>
+            ) : heroes.length > 0 ? (
+                <>
+                    <div className="heroes-list">
+                        {heroes.map(hero => (
+                            <div key={hero.id} className="heroes">
+                                <h2>
+                                    {hero.name}
+                                    <span className="hero-status">
+                                    {hero.status}
+                                </span>
+                                </h2>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="pagination">
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(page - 1)}
+                        >
+                            Previous
+                        </button>
+                        <span>
+                        Page {page} of {pages}
                     </span>
-                            </h2>
-                        </div>
-                    ))
-                ) : (
-                    <div className="no-results">No results</div>
-                )}
-            </div>
-
-            {heroes.length > 0 && (
-                <div className="pagination">
-                    <button
-                        disabled={page === 1}
-                        onClick={() => setPage(page - 1)}
-                    >
-                        Previous
-                    </button>
-
-                    <span> {" "}Page {page} of {pages}{" "} </span>
-
-                    <button
-                        disabled={page === pages}
-                        onClick={() => setPage(page + 1)}
-                    >
-                        Next
-                    </button>
-                </div>
+                        <button
+                            disabled={page === pages}
+                            onClick={() => setPage(page + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <div className="no-results">{error}</div>
             )}
-
         </div>
-    );
+    )
 }

@@ -20,3 +20,7 @@ export type HeroesResponse = {
     }
     results: Hero[]
 }
+
+export type ErrorResponse = {
+    error: string
+}

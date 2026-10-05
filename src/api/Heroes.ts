@@ -1,7 +1,7 @@
-import {type HeroesResponse, HeroState} from "../types.ts";
+import {type ErrorResponse, type HeroesResponse, HeroState} from "../types.ts";
 
 
-export async function GetHeroes(
+export async function getHeroes(
     name: string,
     heroState: HeroState,
     page: number
@@ -19,7 +19,8 @@ export async function GetHeroes(
     const response: Response = await fetch(request)
 
     if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`)
+        const errorResponse = await response.json() as ErrorResponse
+        throw new Error(errorResponse.error)
     }
 
     return await response.json() as HeroesResponse
